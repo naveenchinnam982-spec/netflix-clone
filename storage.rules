@@ -1,0 +1,58 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Only small assets (thumbnails, posters, avatars, captions) live in
+    // Firebase Storage. Full video files go to Cloudinary via the API routes,
+    // so no large uploads ever hit this bucket.
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isTeacher() {
+      return isSignedIn() &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'teacher'];
+    }
+
+    function isOwner(pathUserId) {
+      return isSignedIn() && request.auth.uid == pathUserId;
+    }
+
+    // Thumbnails & posters: teachers only, images up to 5MB
+    match /thumbnails/{videoId} {
+      allow read: if true;
+      allow write: if isTeacher() &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    match /posters/{videoId} {
+      allow read: if true;
+      allow write: if isTeacher() &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // User avatars: the owner, images up to 2MB
+    match /avatars/{userId} {
+      allow read: if true;
+      allow write: if isOwner(userId) &&
+        request.resource.size < 2 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // Caption/subtitle files: teachers, text files up to 1MB
+    match /captions/{videoId} {
+      allow read: if true;
+      allow write: if isTeacher() &&
+        request.resource.size < 1024 * 1024 &&
+        request.resource.contentType.matches('text/.*');
+    }
+
+    // Catch-all: deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
