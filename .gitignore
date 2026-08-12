@@ -3,3 +3,6 @@
 .env
 .env.local
 zoom-class-sharing/
+
+# Local Netlify folder
+.netlify
