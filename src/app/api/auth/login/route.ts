@@ -11,6 +11,19 @@ import { getAdminAuth, isFirebaseConfigured } from '@/lib/firebase-admin';
 import { signToken, type AuthPayload } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
 
+/**
+ * Demo auth is enabled in development, or in a production deployment that
+ * explicitly opts in via NEXT_PUBLIC_ENABLE_DEMO_AUTH=true. Default-off in
+ * production so a misconfigured deployment can never hand out admin JWTs
+ * to anonymous callers.
+ */
+function isDemoAuthEnabled(): boolean {
+  return (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.NEXT_PUBLIC_ENABLE_DEMO_AUTH === 'true'
+  );
+}
+
 export async function POST(request: NextRequest) {
   const limited = rateLimit(request, { limit: 10, windowMs: 60_000, keyPrefix: 'auth-login' });
   if (limited) return limited;
@@ -27,10 +40,11 @@ export async function POST(request: NextRequest) {
         email: decoded.email || undefined,
         role: ((decoded.role as AuthPayload['role']) || 'user') as AuthPayload['role'],
       };
-    } else if (process.env.NODE_ENV !== 'production') {
-      // Demo mode (local/dev only): mint a JWT for the demo admin so the
-      // middleware and dashboard work without Firebase credentials. Never
-      // in production — otherwise any caller could obtain an admin token.
+    } else if (isDemoAuthEnabled()) {
+      // Demo mode: mint a JWT for the demo admin so the middleware and
+      // dashboard work without Firebase credentials. In production this
+      // requires NEXT_PUBLIC_ENABLE_DEMO_AUTH=true — otherwise any caller
+      // could obtain an admin token on a misconfigured deployment.
       payload = { uid: 'demo-admin', email: 'admin@streamflix.dev', role: 'admin' };
     } else {
       return NextResponse.json(

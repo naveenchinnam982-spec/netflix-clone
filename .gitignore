@@ -6,3 +6,9 @@ zoom-class-sharing/
 
 # Local Netlify folder
 .netlify
+
+.vercel
+.env*
+
+# Local tunnel binary (downloaded tool, not part of the app)
+tools/
