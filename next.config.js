@@ -9,6 +9,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'image.tmdb.org' },
       // Demo catalog thumbnails
       { protocol: 'https', hostname: 'commondatastorage.googleapis.com' },
+      { protocol: 'https', hostname: 'storage.googleapis.com' },
+      { protocol: 'https', hostname: 'picsum.photos' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

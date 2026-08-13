@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
   if (isFirebaseConfigured()) {
     try {
       const db = getAdminDb()!;
-      const snapshot = await db.collection('videos').where('status', '==', 'ready').orderBy('createdAt', 'desc').limit(100).get();
+      // Equality filter only (no composite index needed); sorted below.
+      const snapshot = await db.collection('videos').where('status', '==', 'ready').get();
       videos = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Video);
     } catch {
       videos = [];

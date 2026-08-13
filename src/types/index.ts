@@ -74,7 +74,7 @@ export interface Video {
   description: string;
   thumbnail: string;
   thumbnailBlur?: string;
-  videoUrl: string;
+  videoUrl?: string;
   hlsUrl?: string;
   dashUrl?: string;
   duration: number;

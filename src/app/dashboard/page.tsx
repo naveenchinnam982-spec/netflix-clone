@@ -7,11 +7,10 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Users, Video, Eye, DollarSign, TrendingUp, Activity,
-  Clock, Upload, BarChart3
+import {
+  Users, Video, Eye, DollarSign, BarChart3
 } from 'lucide-react';
-import { cn, formatViews, formatFileSize } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface StatCard {
   title: string;

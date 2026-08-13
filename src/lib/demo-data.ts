@@ -3,8 +3,10 @@
 // ============================
 // A rich, realistic dataset used when Firebase is not configured (demo mode).
 // All videos point at publicly hosted sample streams so playback actually works:
-//   - MP4:  Google "GTv" sample bucket
-//   - HLS:  Mux / Akamai public test streams (adaptive bitrate)
+//   - HLS:  Mux / Unified-Streaming public test streams (adaptive bitrate)
+//   - Images: picsum.photos (stable, public)
+// NOTE: Google's old public "gtv-videos-bucket" was restricted upstream in
+// 2025 (returns 403), so it is deliberately not used here.
 // This is a feature, not a placeholder: swap to Firestore automatically when
 // FIREBASE_SERVICE_ACCOUNT_KEY is set (see src/lib/repository.ts).
 
@@ -77,8 +79,15 @@ export const DEMO_USERS: User[] = [
 
 // ---------- Demo Videos ----------
 
-const GTV = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample';
-const GTV_IMG = 'https://storage.googleapis.com/gtv-videos-bucket/sample/images';
+// Verified-live public HLS test streams (checked 2026):
+const HLS_STREAMS = {
+  bigBuckBunny: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+  tearsOfSteel: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
+  sintel: 'https://test-streams.mux.dev/pts_shift/master.m3u8',
+  elephantsDream: 'https://test-streams.mux.dev/test_001/stream.m3u8',
+};
+const HLS_FALLBACKS = Object.values(HLS_STREAMS);
+const THUMB = (seed: string) => `https://picsum.photos/seed/${seed}/1280/720`;
 
 type VideoSeed = Omit<
   Video,
@@ -453,18 +462,26 @@ const seedVideos: VideoSeed[] = [
 
 const QUALITY_MAP: Video['quality'] = ['240p', '360p', '480p', '720p', '1080p'];
 
+const TITLE_TO_HLS: Record<string, string> = {
+  'Big Buck Bunny': HLS_STREAMS.bigBuckBunny,
+  'Tears of Steel': HLS_STREAMS.tearsOfSteel,
+  'Sintel': HLS_STREAMS.sintel,
+  'Elephants Dream': HLS_STREAMS.elephantsDream,
+};
+
 export function buildDemoVideos(): Video[] {
   return seedVideos.map((seed, index) => {
     const category = DEMO_CATEGORIES.find(c => c.id === seed.categoryId) || DEMO_CATEGORIES[0];
     const isUhd = seed.title === 'Tears of Steel' || seed.title === 'Big Buck Bunny';
+    const hlsUrl = TITLE_TO_HLS[seed.title] || HLS_FALLBACKS[index % HLS_FALLBACKS.length];
     return {
       id: `demo-${index + 1}`,
       title: seed.title,
       description: seed.description,
-      thumbnail: `${GTV_IMG}/${seed.image}`,
-      thumbnailBlur: `${GTV_IMG}/${seed.image}`,
-      videoUrl: `${GTV}/${seed.file}`,
-      hlsUrl: seed.hlsUrl,
+      thumbnail: THUMB(seed.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')),
+      thumbnailBlur: THUMB(seed.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')),
+      videoUrl: undefined,
+      hlsUrl,
       duration: seed.duration,
       views: seed.views,
       likes: seed.likes,

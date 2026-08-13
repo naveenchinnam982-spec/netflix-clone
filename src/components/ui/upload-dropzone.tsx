@@ -157,25 +157,7 @@ export function UploadDropzone({
     }
   }, [disabled]);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    if (disabled) return;
-
-    const files = Array.from(e.dataTransfer.files);
-    validateAndUpload(files);
-  }, [disabled, onFilesSelected]);
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    validateAndUpload(files);
-    if (inputRef.current) {
-      inputRef.current.value = '';
-    }
-  }, [onFilesSelected]);
-
-  const validateAndUpload = (files: File[]) => {
+  const validateAndUpload = useCallback((files: File[]) => {
     setError(null);
 
     const validFiles = files.filter(file => {
@@ -197,7 +179,25 @@ export function UploadDropzone({
       startUpload(validFiles);
       onFilesSelected(validFiles);
     }
-  };
+  }, [accept, maxSize, onFilesSelected, startUpload]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (disabled) return;
+
+    const files = Array.from(e.dataTransfer.files);
+    validateAndUpload(files);
+  }, [disabled, validateAndUpload]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    validateAndUpload(files);
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  }, [validateAndUpload]);
 
   return (
     <div className="space-y-4">

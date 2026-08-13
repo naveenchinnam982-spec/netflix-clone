@@ -11,7 +11,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Users, Link2 } from 'lucide-react';
-import { VideoPlayer } from '@/components/ui/video-player';
 import { useVideoStore } from '@/store/video-store';
 import { useAuthStore } from '@/store/auth-store';
 import type { Video } from '@/types';

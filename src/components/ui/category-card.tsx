@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Film, Sparkles, Music, Globe, Gamepad2, BookOpen, Palette, Radio, Tv, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { CategoryCardProps, Category } from '@/types';
+import type { CategoryCardProps } from '@/types';
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   'trending': TrendingUp,

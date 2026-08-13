@@ -21,7 +21,6 @@ import { requireRole } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { isCloudinaryConfigured } from '@/lib/cloudinary';
 
-const CHUNK_SIZE = 6 * 1024 * 1024;
 const ASSEMBLY_TTL = 60 * 60 * 1000; // 1 hour per upload
 
 interface Assembly {

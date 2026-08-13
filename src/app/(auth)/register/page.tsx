@@ -29,6 +29,26 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
+    // Normalize input before submitting so the stored profile and the
+    // Firestore rule check (email == request.auth.token.email) are consistent.
+    const trimmedName = displayName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedName) {
+      setError('Please enter your name');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -41,9 +61,11 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      await registerWithEmail(email, password, displayName);
+      await registerWithEmail(trimmedEmail, password, trimmedName);
       router.push('/browse');
     } catch (err: any) {
+      // The store already converts auth/* codes into actionable messages
+      // (e.g. "An account with this email already exists").
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);

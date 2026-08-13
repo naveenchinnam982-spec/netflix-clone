@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Play, Plus, Check, ThumbsUp, Clock, CalendarDays } from 'lucide-react';
+import { Play, Plus, Check, Clock, CalendarDays } from 'lucide-react';
 import { VideoRow } from '@/components/ui/video-row';
 import { useVideoStore } from '@/store/video-store';
 import { formatViews, formatRelativeDate, formatDuration } from '@/lib/utils';
@@ -22,7 +22,7 @@ export default function VideoDetailPage() {
   const videoId = params.id as string;
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
-  const { getVideoById, videos, myList, addToMyList, removeFromMyList } = useVideoStore();
+  const { getVideoById, videos, myList, addToMyList, removeFromMyList, fetchVideos } = useVideoStore();
   const [inMyList, setInMyList] = useState(false);
 
   useEffect(() => {
@@ -32,7 +32,9 @@ export default function VideoDetailPage() {
       setLoading(false);
     };
     load();
-  }, [videoId, getVideoById]);
+    // Populate the catalog so "More Like This" renders.
+    if (videos.length === 0) fetchVideos();
+  }, [videoId, getVideoById, videos.length, fetchVideos]);
 
   useEffect(() => {
     setInMyList(myList.includes(videoId));

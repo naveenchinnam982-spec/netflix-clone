@@ -12,7 +12,7 @@ import { cacheGet, cacheSet, cacheDelete, cacheKeys } from '@/lib/redis';
 import { requireRole } from '@/lib/auth';
 import type { Category } from '@/types';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const cached = await cacheGet<Category[]>(cacheKeys.categories());
   if (cached) {
     return NextResponse.json({ success: true, data: cached });
@@ -21,8 +21,11 @@ export async function GET(request: NextRequest) {
   if (isFirebaseConfigured()) {
     try {
       const db = getAdminDb()!;
-      const snapshot = await db.collection('categories').where('isActive', '==', true).orderBy('order', 'asc').get();
-      const categories = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Category);
+      // Equality filter only (no composite index needed); sort in memory.
+      const snapshot = await db.collection('categories').where('isActive', '==', true).get();
+      const categories = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }) as Category)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       await cacheSet(cacheKeys.categories(), categories, 600);
       return NextResponse.json({ success: true, data: categories });
     } catch (error: any) {

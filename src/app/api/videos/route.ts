@@ -30,22 +30,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: cached, pagination: { page, limit } });
   }
 
-  // Firebase mode
+  // Firebase mode. Equality filters only — no composite index required, so
+  // this works on a fresh Firebase project without console setup. Sorting,
+  // text search, and pagination happen in memory. (At scale, add composite
+  // indexes for status+createdAt / status+views and push them into the query.)
   if (isFirebaseConfigured()) {
     try {
       const db = getAdminDb()!;
-      let query: FirebaseFirestore.Query = db.collection('videos')
-        .where('status', '==', 'ready')
-        .orderBy(sort === 'views' ? 'views' : 'createdAt', sort === 'views' ? 'desc' : 'desc')
-        .limit(limit);
-
-      if (category) {
-        query = db.collection('videos')
-          .where('categoryId', '==', category)
-          .where('status', '==', 'ready')
-          .orderBy('createdAt', 'desc')
-          .limit(limit);
-      }
+      let query: FirebaseFirestore.Query = db.collection('videos').where('status', '==', 'ready');
+      if (category) query = query.where('categoryId', '==', category);
 
       const snapshot = await query.get();
       let videos = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Video);
@@ -58,7 +51,12 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const result = { videos, hasMore: snapshot.docs.length === limit };
+      if (sort === 'views') videos.sort((a, b) => b.views - a.views);
+      else videos.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+      const start = (page - 1) * limit;
+      const slice = videos.slice(start, start + limit);
+      const result = { videos: slice, hasMore: start + limit < videos.length, total: videos.length };
       await cacheSet(cacheKey, result, 120);
       return NextResponse.json({ success: true, data: result, pagination: { page, limit } });
     } catch (error: any) {

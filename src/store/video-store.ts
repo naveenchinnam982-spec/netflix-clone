@@ -112,7 +112,7 @@ export const useVideoStore = create<VideoState>()(
         try {
           const trending = await repo.getTrending();
           set({ trendingVideos: trending });
-        } catch (error) {
+        } catch {
           set({ error: 'Failed to load trending videos' });
         }
       },
@@ -121,7 +121,7 @@ export const useVideoStore = create<VideoState>()(
         try {
           const recent = await repo.getRecent();
           set({ recentVideos: recent });
-        } catch (error) {
+        } catch {
           set({ error: 'Failed to load recent videos' });
         }
       },
@@ -130,7 +130,7 @@ export const useVideoStore = create<VideoState>()(
         try {
           const featured = await repo.getFeatured();
           set({ featuredVideo: featured });
-        } catch (error) {
+        } catch {
           set({ error: 'Failed to load featured video' });
         }
       },
@@ -139,7 +139,7 @@ export const useVideoStore = create<VideoState>()(
         try {
           const categories = await repo.getCategories();
           set({ categories });
-        } catch (error) {
+        } catch {
           set({ error: 'Failed to load categories' });
         }
       },

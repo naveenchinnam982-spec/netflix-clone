@@ -51,6 +51,10 @@ export function useLiveStream({ streamId, isTeacher, displayName }: UseLiveStrea
 
   // ---------- Join / leave room ----------
   useEffect(() => {
+    // Capture stable references for the cleanup below (refs may change).
+    const peers = peersRef.current;
+    const stream = streamRef.current;
+
     socket.emit('stream:join', { streamId, user: { displayName, role: isTeacher ? 'teacher' : 'student' } });
     const onViewers = (count: number) => setViewers(count);
     const onMessage = (msg: ChatMessage) => setMessages((prev) => [...prev, msg]);
@@ -59,10 +63,10 @@ export function useLiveStream({ streamId, isTeacher, displayName }: UseLiveStrea
 
     // WebRTC signaling
     const onSignal = async (payload: { from: string; signal: any }) => {
-      let pc = peersRef.current.get(payload.from);
+      let pc = peers.get(payload.from);
       if (!pc) {
         pc = createPeer(payload.from, false);
-        peersRef.current.set(payload.from, pc);
+        peers.set(payload.from, pc);
       }
       try {
         if (payload.signal?.type === 'offer') {
@@ -86,9 +90,9 @@ export function useLiveStream({ streamId, isTeacher, displayName }: UseLiveStrea
       socket.off('stream:viewers', onViewers);
       socket.off('stream:chat', onMessage);
       socket.off('stream:signal', onSignal);
-      peersRef.current.forEach((pc) => pc.close());
-      peersRef.current.clear();
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      peers.forEach((pc) => pc.close());
+      peers.clear();
+      stream?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamId]);

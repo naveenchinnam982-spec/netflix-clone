@@ -11,11 +11,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   SkipBack, SkipForward, Settings, Subtitles, PictureInPicture2,
-  ChevronDown, Loader2
+  Loader2
 } from 'lucide-react';
 import { cn, formatDuration } from '@/lib/utils';
 import { useVideoPlayer } from '@/hooks/use-video-player';
-import type { Video, VideoQuality, Caption } from '@/types';
+import type { Video, VideoQuality } from '@/types';
 import Hls from 'hls.js';
 
 interface VideoPlayerProps {
@@ -44,10 +44,10 @@ export function VideoPlayer({
   const hlsRef = useRef<Hls | null>(null);
 
   const {
-    isPlaying, isMuted, isFullscreen, isPiP,
+    isPlaying, isMuted, isFullscreen,
     currentTime, duration, volume, playbackRate,
-    quality, isControlsVisible, isLoading, buffered,
-    error, controls, containerRef
+    quality, isLoading, buffered,
+    error, controls
   } = useVideoPlayer(videoRef);
 
   const [showSettings, setShowSettings] = useState(false);
@@ -55,7 +55,6 @@ export function VideoPlayer({
   const [showSubtitles, setShowSubtitles] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [activeCaption, setActiveCaption] = useState<string | null>(null);
-  const [isSeeking, setIsSeeking] = useState(false);
   const [previewTime, setPreviewTime] = useState(0);
   const [previewPosition, setPreviewPosition] = useState(0);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
@@ -214,7 +213,9 @@ export function VideoPlayer({
         onClick={controls.togglePlay}
         onEnded={onEnd}
         preload="metadata"
-        crossOrigin="anonymous"
+        // crossOrigin is only needed for HLS.js segment fetching; on plain
+        // MP4 sources it breaks playback when the CDN lacks CORS headers.
+        crossOrigin={video.hlsUrl ? 'anonymous' : undefined}
       />
 
       {/* Subtitles Track */}

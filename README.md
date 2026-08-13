@@ -84,9 +84,38 @@ Open http://localhost:3000. **No configuration is required to see the full produ
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the data flow, security model, and scaling notes, and [docs/API.md](docs/API.md) for the endpoint + Firestore schema reference.
 
-## ☁️ Deployment
+## ☁️ Deployment (Netlify)
 
-- **Frontend** → Vercel (`vercel` CLI, zero config).
+The repo is pre-configured for Netlify (`netlify.toml` uses the official `@netlify/plugin-nextjs` runtime so Server Components, `/api/*` route handlers and middleware work in production).
+
+**In the Netlify dashboard (or `netlify deploy`):**
+
+- Build command: `npm run build` (already set in `netlify.toml`)
+- Publish directory: `.next` (already set in `netlify.toml`)
+- Node version: 20 (already set in `netlify.toml`)
+
+**Required environment variables — add every one of these in Netlify → Site settings → Environment variables (values from your Firebase console → Project settings → General):**
+
+| Variable | Needed for |
+| --- | --- |
+| `NEXT_PUBLIC_APP_URL` | Canonical URLs (set to your Netlify site URL) |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Auth + Firestore (client) |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Auth (client) |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Auth + Firestore (client) |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Storage (client) |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Messaging (client) |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Auth (client) |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Analytics (client, optional) |
+| `FIREBASE_PROJECT_ID` | Admin SDK (server) |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Admin SDK (server — the full service-account JSON, as one escaped string) |
+| `JWT_SECRET` | Server-side session cookie signing (any long random string) |
+
+Optional: `NEXT_PUBLIC_SOCKET_URL`, `CLOUDINARY_*`, `REDIS_URL`, `STRIPE_*`, `RAZORPAY_*`, `SMTP_*`, `OPENAI_API_KEY`, `ASSEMBLYAI_API_KEY`, `NEXT_PUBLIC_GA_ID`, `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD` (see `.env.local.example`).
+
+> **Important:** Sign-up/login authenticate directly against Firebase from the browser. After deploying, run `firebase deploy --only firestore:rules` (or paste `firestore.rules` into the Firebase console) — the rules in this repo are required for user creation to succeed.
+
+**Other services:**
+
 - **Socket.io server** → Railway (`server/index.js`, plain Node — no build step).
 - **Database** → Firebase Firestore (deploy `firestore.rules` + `storage.rules`).
 - **Video storage/transcoding** → Cloudinary (HLS/DASH adaptive streaming).

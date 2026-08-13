@@ -12,13 +12,14 @@ import { useAuthStore } from '@/store/auth-store';
 export function useAuth() {
   const router = useRouter();
   const store = useAuthStore();
+  const initialize = useAuthStore(state => state.initialize);
 
   useEffect(() => {
-    const unsubscribe = store.initialize();
+    const unsubscribe = initialize();
     return () => {
       unsubscribe?.();
     };
-  }, []);
+  }, [initialize]);
 
   const requireAuth = (redirectTo: string = '/login') => {
     if (!store.isLoading && !store.isAuthenticated) {

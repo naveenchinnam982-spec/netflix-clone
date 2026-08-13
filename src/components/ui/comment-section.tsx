@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ThumbsUp, ThumbsDown, MessageCircle, Flag, Pin, ChevronDown, Reply, Smile } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, MessageCircle, Pin, Smile } from 'lucide-react';
 import { cn, formatRelativeDate } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import type { Comment, CommentSectionProps } from '@/types';
@@ -17,7 +17,7 @@ import Picker from '@emoji-mart/react';
 
 const EMOJI_PICKER_DATA = data;
 
-export function CommentSection({ videoId, comments, onAddComment, onDeleteComment, onReportComment }: CommentSectionProps) {
+export function CommentSection({ videoId: _videoId, comments, onAddComment, onDeleteComment, onReportComment }: CommentSectionProps) {
   const [newComment, setNewComment] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export function CommentSection({ videoId, comments, onAddComment, onDeleteCommen
     setNewComment('');
   };
 
-  const handleSubmitReply = (parentId: string) => {
+  const handleSubmitReply = (_parentId: string) => {
     if (!replyText.trim()) return;
     onAddComment(replyText.trim());
     setReplyText('');
@@ -200,7 +200,6 @@ function CommentItem({
 }) {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
-  const [showActions, setShowActions] = useState(false);
 
   return (
     <motion.div

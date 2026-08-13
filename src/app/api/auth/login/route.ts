@@ -27,10 +27,16 @@ export async function POST(request: NextRequest) {
         email: decoded.email || undefined,
         role: ((decoded.role as AuthPayload['role']) || 'user') as AuthPayload['role'],
       };
-    } else {
-      // Demo mode: mint a JWT for the demo admin so the middleware and
-      // dashboard work without Firebase credentials.
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Demo mode (local/dev only): mint a JWT for the demo admin so the
+      // middleware and dashboard work without Firebase credentials. Never
+      // in production — otherwise any caller could obtain an admin token.
       payload = { uid: 'demo-admin', email: 'admin@streamflix.dev', role: 'admin' };
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Authentication is not configured on this deployment' },
+        { status: 503 }
+      );
     }
 
     const token = signToken(payload);

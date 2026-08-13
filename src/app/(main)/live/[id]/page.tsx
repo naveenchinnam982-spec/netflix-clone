@@ -7,6 +7,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -134,12 +135,12 @@ export default function LiveRoomPage() {
               {isTeacher && (
                 <ControlButton active={isRecording} onClick={toggleRecording} icon={<Download className="w-5 h-5" />} label={isRecording ? 'Stop Recording' : 'Record'} highlight={isRecording} pulse={isRecording} />
               )}
-              <a
+              <Link
                 href="/live"
                 className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white rounded-full px-6 py-3 font-medium transition-colors"
               >
                 <PhoneOff className="w-5 h-5" /> Leave
-              </a>
+              </Link>
             </div>
           </div>
 

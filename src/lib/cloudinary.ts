@@ -58,16 +58,6 @@ export function isCloudinaryConfigured(): boolean {
   ) && Boolean(key) && !key.includes('YOUR_');
 }
 
-const QUALITY_MAP: Record<VideoQuality, { width: number; height: number; bitrate: string }> = {
-  '240p': { width: 426, height: 240, bitrate: '300k' },
-  '360p': { width: 640, height: 360, bitrate: '500k' },
-  '480p': { width: 854, height: 480, bitrate: '800k' },
-  '720p': { width: 1280, height: 720, bitrate: '1500k' },
-  '1080p': { width: 1920, height: 1080, bitrate: '3000k' },
-  '1440p': { width: 2560, height: 1440, bitrate: '6000k' },
-  '4K': { width: 3840, height: 2160, bitrate: '12000k' },
-};
-
 export interface CloudinaryUploadResult {
   public_id: string;
   url: string;

@@ -9,7 +9,7 @@
 import Redis from 'ioredis';
 
 let client: Redis | null = null;
-let memory = new Map<string, { value: string; expiresAt: number }>();
+const memory = new Map<string, { value: string; expiresAt: number }>();
 
 function getClient(): Redis | null {
   if (!process.env.REDIS_URL) return null;

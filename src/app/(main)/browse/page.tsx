@@ -36,8 +36,11 @@ export default function BrowsePage() {
       fetchRecentVideos(),
       fetchCategories(),
       fetchContinueWatching(),
+      // Populate the store-wide catalog so per-category rows render every
+      // category's videos (not just the recent slice).
+      fetchVideos(),
     ]);
-  }, [fetchFeaturedVideo, fetchTrendingVideos, fetchRecentVideos, fetchCategories, fetchContinueWatching]);
+  }, [fetchFeaturedVideo, fetchTrendingVideos, fetchRecentVideos, fetchCategories, fetchContinueWatching, fetchVideos]);
 
   useEffect(() => {
     loadAll();

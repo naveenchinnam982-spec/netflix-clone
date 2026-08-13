@@ -16,7 +16,6 @@ export function useInfiniteScroll(options: UseInfiniteScrollOptions) {
     onLoadMore,
     hasMore,
     isLoading,
-    threshold = 100,
     rootMargin = '100px',
     enabled = true,
   } = options;

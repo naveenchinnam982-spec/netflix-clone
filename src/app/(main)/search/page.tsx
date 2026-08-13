@@ -13,7 +13,6 @@ import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { VideoCard } from '@/components/ui/video-card';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useVideoStore } from '@/store/video-store';
-import { cn } from '@/lib/utils';
 import type { Video } from '@/types';
 
 const DURATIONS = [

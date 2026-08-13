@@ -7,12 +7,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Radio, Users, PlayCircle, Plus, Loader2 } from 'lucide-react';
 import { repo } from '@/lib/repository';
 import { useAuthStore } from '@/store/auth-store';
 import { cn, formatRelativeDate } from '@/lib/utils';
 import type { LiveStream } from '@/types';
+
+const MotionLink = motion(Link);
 import toast from 'react-hot-toast';
 
 export default function LivePage() {
@@ -118,7 +121,7 @@ export default function LivePage() {
               {streams.map((stream, i) => {
                 const isLive = stream.status === 'live';
                 return (
-                  <motion.a
+                  <MotionLink
                     key={stream.id}
                     href={`/live/${stream.id}`}
                     initial={{ opacity: 0, y: 20 }}
@@ -149,7 +152,7 @@ export default function LivePage() {
                         <span className="text-netflix-gray text-xs">{formatRelativeDate(stream.createdAt)}</span>
                       </div>
                     </div>
-                  </motion.a>
+                  </MotionLink>
                 );
               })}
             </div>

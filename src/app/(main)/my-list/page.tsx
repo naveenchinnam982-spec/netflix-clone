@@ -5,14 +5,21 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Trash2 } from 'lucide-react';
 import { VideoCard } from '@/components/ui/video-card';
 import { useVideoStore } from '@/store/video-store';
 
 export default function MyListPage() {
-  const { myList, videos } = useVideoStore();
+  const { myList, videos, fetchVideos } = useVideoStore();
+
+  // My List stores ids; the catalog (videos) is loaded on demand so the
+  // saved titles render even when this page is deep-linked to.
+  useEffect(() => {
+    if (videos.length === 0) fetchVideos();
+  }, [videos.length, fetchVideos]);
+
   const savedVideos = videos.filter(v => myList.includes(v.id));
 
   return (

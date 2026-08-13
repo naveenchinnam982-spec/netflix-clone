@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Loader2, Zap } from 'lucide-react';
-import { cn, formatCurrency, getSubscriptionPrice } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import toast from 'react-hot-toast';
 

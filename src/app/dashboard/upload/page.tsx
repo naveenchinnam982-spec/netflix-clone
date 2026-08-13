@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, Loader2, CheckCircle2, FileVideo, X } from 'lucide-react';
 import { UploadDropzone } from '@/components/ui/upload-dropzone';
@@ -28,9 +28,12 @@ export default function UploadPage() {
   const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>('public');
   const [saving, setSaving] = useState(false);
 
-  const { uploads, isUploading } = useUpload();
+  const { uploads, isUploading, startUpload } = useUpload();
   const { categories, fetchCategories, createVideo } = useVideoStore();
   const user = useAuthStore(s => s.user);
+  // The chunked upload runs in the background; this resolves when it finishes
+  // so publish waits for the actual file upload before saving metadata.
+  const uploadPromiseRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -43,12 +46,25 @@ export default function UploadPage() {
     setTitle(file.name.replace(/\.[^/.]+$/, ''));
     setStage('details');
     toast.success(`Selected ${file.name} (${formatFileSize(file.size)})`);
+    // Kick off the chunked, resumable upload immediately — progress renders
+    // in the uploads list below while the user fills in the metadata form.
+    uploadPromiseRef.current = startUpload([file]);
   };
 
   const handleCreateVideo = async () => {
     if (!selectedFile) return;
     setSaving(true);
     try {
+      // Never register a video without its file: wait for the chunked upload
+      // to finish first, and abort publishing if it failed.
+      if (uploadPromiseRef.current) {
+        const completed = await uploadPromiseRef.current;
+        if (!completed) {
+          toast.error('Upload failed — check your connection and retry.');
+          setSaving(false);
+          return;
+        }
+      }
       const video = await createVideo({
         title: title.trim() || selectedFile.name,
         description,

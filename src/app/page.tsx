@@ -158,7 +158,7 @@ export default function LandingPage() {
       </section>
 
       {/* ============ FEATURES ============ */}
-      {features.map((feature, i) => (
+      {features.map((feature) => (
         <section key={feature.title} className={cn('border-t-8 border-netflix-darker py-16 md:py-24', feature.reverse && 'bg-netflix-darker/40')}>
           <div className="max-w-6xl mx-auto px-4 md:px-12 grid md:grid-cols-2 gap-10 items-center">
             <motion.div

@@ -15,16 +15,29 @@ export interface AuthPayload {
   role: UserRole;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 const TOKEN_TTL = '7d';
 
+// In production a missing/unset JWT_SECRET must fail loudly instead of
+// silently signing tokens with a publicly-known fallback secret. The check
+// is lazy (at sign/verify time) so the build itself never fails on it.
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret === 'dev-secret-change-me') {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET must be set in production (see .env.local.example)');
+    }
+    return 'dev-secret-change-me';
+  }
+  return secret;
+}
+
 export function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_TTL });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: TOKEN_TTL });
 }
 
 export function verifyToken(token: string): AuthPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as AuthPayload;
+    return jwt.verify(token, getJwtSecret()) as AuthPayload;
   } catch {
     return null;
   }

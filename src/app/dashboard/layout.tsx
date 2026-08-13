@@ -8,7 +8,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Upload, Video, BarChart3, Users, FolderTree,
   Settings, Radio, LogOut, ChevronLeft, Menu
@@ -116,7 +115,9 @@ export default function DashboardLayout({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-white text-lg font-semibold">
-                {sidebarLinks.find(l => pathname.startsWith(l.href))?.label || 'Dashboard'}
+                {sidebarLinks.find(l => pathname === l.href)?.label
+                  || sidebarLinks.find(l => pathname.startsWith(l.href))?.label
+                  || 'Dashboard'}
               </h2>
             </div>
             <div className="flex items-center gap-3">

@@ -6,7 +6,20 @@
 // so middleware can guard routes without pulling Node APIs into the Edge
 // Runtime.
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+// Lazy secret resolution, mirroring src/lib/auth.ts. In production a missing
+// JWT_SECRET makes verification fail closed (null => unauthenticated) instead
+// of accepting tokens signed with the publicly-known fallback secret.
+function getJwtSecret(): string | null {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret === 'dev-secret-change-me') {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[jwt-edge] JWT_SECRET must be set in production (see .env.local.example)');
+      return null;
+    }
+    return 'dev-secret-change-me';
+  }
+  return secret;
+}
 
 function base64UrlDecode(input: string): Uint8Array<ArrayBuffer> {
   const b64 = input.replace(/-/g, '+').replace(/_/g, '/');
@@ -25,6 +38,8 @@ export interface EdgeAuthPayload {
 
 /** Verifies an HS256 JWT and returns its payload, or null when invalid. */
 export async function verifyTokenEdge(token: string): Promise<EdgeAuthPayload | null> {
+  const JWT_SECRET = getJwtSecret();
+  if (!JWT_SECRET) return null;
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;

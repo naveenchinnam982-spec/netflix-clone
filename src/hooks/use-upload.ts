@@ -74,7 +74,10 @@ export function useUpload(options: UploadOptions = {}) {
   );
 
   const startUpload = useCallback(
-    async (files: File[]) => {
+    async (files: File[]): Promise<boolean> => {
+      // Resolves true when every file finished uploading, false if any file
+      // failed or was paused/cancelled — callers await this before publishing
+      // metadata so a video is never registered without its file.
       setIsUploading(true);
       const newUploads: UploadFile[] = files.map((file) => ({
         file,
@@ -95,113 +98,16 @@ export function useUpload(options: UploadOptions = {}) {
       completedChunks.current.set(newUploads[0]?.id || '', new Set());
       setUploads((prev) => [...prev, ...newUploads]);
 
+      let allCompleted = true;
       for (const upload of newUploads) {
-        await uploadFileInChunks(upload);
+        const ok = await uploadFileInChunks(upload);
+        if (!ok) allCompleted = false;
       }
       setIsUploading(false);
+      return allCompleted;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [generateUploadId, chunkSize]
-  );
-
-  const uploadFileInChunks = useCallback(
-    async (upload: UploadFile) => {
-      const { file, id } = upload;
-      const totalChunks = Math.ceil(file.size / chunkSize);
-      if (running.current.get(id)) return; // Already uploading.
-      running.current.set(id, true);
-
-      const abortController = new AbortController();
-      abortControllers.current.set(id, abortController);
-      const startTime = Date.now();
-      let bytesUploaded = (completedChunks.current.get(id)?.size || 0) * chunkSize;
-      const done = completedChunks.current.get(id) || new Set<number>();
-
-      setUploads((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, status: 'uploading' as UploadStatus } : u))
-      );
-
-      const batchProgress = (chunkIndex: number) => {
-        const progress = calculateProgress(bytesUploaded, file.size, startTime);
-        progress.chunkIndex = chunkIndex;
-        progress.totalChunks = totalChunks;
-        setUploadProgress(progress);
-        setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, progress } : u)));
-      };
-
-      // Upload chunks in parallel windows, skipping already-completed ones.
-      for (let i = 0; i < totalChunks; i += parallelChunks) {
-        if (abortController.signal.aborted) {
-          running.current.set(id, false);
-          setUploads((prev) =>
-            prev.map((u) => (u.id === id ? { ...u, status: 'paused' as UploadStatus } : u))
-          );
-          return;
-        }
-
-        const windowChunks: number[] = [];
-        for (let j = 0; j < parallelChunks && i + j < totalChunks; j++) {
-          const chunkIndex = i + j;
-          if (done.has(chunkIndex)) {
-            continue;
-          }
-          windowChunks.push(chunkIndex);
-        }
-
-        if (windowChunks.length === 0) continue;
-
-        const results = await Promise.allSettled(
-          windowChunks.map((chunkIndex) => {
-            const start = chunkIndex * chunkSize;
-            const end = Math.min(start + chunkSize, file.size);
-            const chunk = file.slice(start, end);
-            return uploadChunkWithRetry(chunk, chunkIndex, totalChunks, id, file.name, maxRetries);
-          })
-        );
-
-        let windowBytes = 0;
-        results.forEach((result, idx) => {
-          if (result.status === 'fulfilled') {
-            done.add(windowChunks[idx]);
-            windowBytes += result.value.bytesReceived;
-          }
-        });
-
-        if (windowBytes > 0) {
-          bytesUploaded += windowBytes;
-          batchProgress(Math.min(i + parallelChunks, totalChunks));
-        }
-
-        // If every chunk in this window failed, mark the upload failed.
-        if (windowChunks.length > 0 && results.every((r) => r.status === 'rejected')) {
-          running.current.set(id, false);
-          setUploads((prev) =>
-            prev.map((u) => (u.id === id ? { ...u, status: 'failed' as UploadStatus } : u))
-          );
-          return;
-        }
-      }
-
-      // Upload completed.
-      running.current.set(id, false);
-      abortControllers.current.delete(id);
-      const finalProgress: VideoUploadProgress = {
-        bytesUploaded: file.size,
-        totalBytes: file.size,
-        percentage: 100,
-        speed: 0,
-        estimatedTimeRemaining: 0,
-        status: 'completed',
-        chunkIndex: totalChunks,
-        totalChunks,
-      };
-
-      setUploadProgress(finalProgress);
-      setUploads((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, progress: finalProgress, status: 'completed' as UploadStatus } : u))
-      );
-    },
-    [chunkSize, parallelChunks, maxRetries, calculateProgress, setUploadProgress]
   );
 
   const uploadChunkWithRetry = useCallback(
@@ -243,6 +149,107 @@ export function useUpload(options: UploadOptions = {}) {
       throw lastError || new Error('Upload failed after all retries');
     },
     []
+  );
+
+  const uploadFileInChunks = useCallback(
+    async (upload: UploadFile): Promise<boolean> => {
+      const { file, id } = upload;
+      const totalChunks = Math.ceil(file.size / chunkSize);
+      if (running.current.get(id)) return true; // Already uploading.
+      running.current.set(id, true);
+
+      const abortController = new AbortController();
+      abortControllers.current.set(id, abortController);
+      const startTime = Date.now();
+      let bytesUploaded = (completedChunks.current.get(id)?.size || 0) * chunkSize;
+      const done = completedChunks.current.get(id) || new Set<number>();
+
+      setUploads((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, status: 'uploading' as UploadStatus } : u))
+      );
+
+      const batchProgress = (chunkIndex: number) => {
+        const progress = calculateProgress(bytesUploaded, file.size, startTime);
+        progress.chunkIndex = chunkIndex;
+        progress.totalChunks = totalChunks;
+        setUploadProgress(progress);
+        setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, progress } : u)));
+      };
+
+      // Upload chunks in parallel windows, skipping already-completed ones.
+      for (let i = 0; i < totalChunks; i += parallelChunks) {
+        if (abortController.signal.aborted) {
+          running.current.set(id, false);
+          setUploads((prev) =>
+            prev.map((u) => (u.id === id ? { ...u, status: 'paused' as UploadStatus } : u))
+          );
+          return false;
+        }
+
+        const windowChunks: number[] = [];
+        for (let j = 0; j < parallelChunks && i + j < totalChunks; j++) {
+          const chunkIndex = i + j;
+          if (done.has(chunkIndex)) {
+            continue;
+          }
+          windowChunks.push(chunkIndex);
+        }
+
+        if (windowChunks.length === 0) continue;
+
+        const results = await Promise.allSettled(
+          windowChunks.map((chunkIndex) => {
+            const start = chunkIndex * chunkSize;
+            const end = Math.min(start + chunkSize, file.size);
+            const chunk = file.slice(start, end);
+            return uploadChunkWithRetry(chunk, chunkIndex, totalChunks, id, file.name, maxRetries);
+          })
+        );
+
+        let windowBytes = 0;
+        results.forEach((result, idx) => {
+          if (result.status === 'fulfilled') {
+            done.add(windowChunks[idx]);
+            windowBytes += result.value.bytesReceived;
+          }
+        });
+
+        if (windowBytes > 0) {
+          bytesUploaded += windowBytes;
+          batchProgress(Math.min(i + parallelChunks, totalChunks));
+        }
+
+        // If every chunk in this window failed, mark the upload failed.
+        if (windowChunks.length > 0 && results.every((r) => r.status === 'rejected')) {
+          running.current.set(id, false);
+          setUploads((prev) =>
+            prev.map((u) => (u.id === id ? { ...u, status: 'failed' as UploadStatus } : u))
+          );
+          return false;
+        }
+      }
+
+      // Upload completed.
+      running.current.set(id, false);
+      abortControllers.current.delete(id);
+      const finalProgress: VideoUploadProgress = {
+        bytesUploaded: file.size,
+        totalBytes: file.size,
+        percentage: 100,
+        speed: 0,
+        estimatedTimeRemaining: 0,
+        status: 'completed',
+        chunkIndex: totalChunks,
+        totalChunks,
+      };
+
+      setUploadProgress(finalProgress);
+      setUploads((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, progress: finalProgress, status: 'completed' as UploadStatus } : u))
+      );
+      return true;
+    },
+    [chunkSize, parallelChunks, maxRetries, calculateProgress, setUploadProgress, uploadChunkWithRetry]
   );
 
   const pauseUpload = useCallback((uploadId: string) => {

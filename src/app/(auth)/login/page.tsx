@@ -30,7 +30,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await loginWithEmail(email, password);
+      await loginWithEmail(email.trim().toLowerCase(), password);
       router.push(next);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');

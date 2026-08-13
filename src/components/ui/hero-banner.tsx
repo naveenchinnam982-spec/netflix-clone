@@ -8,15 +8,12 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Play, Info, Volume2, VolumeX, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { HeroBannerProps, Video } from '@/types';
+import type { HeroBannerProps } from '@/types';
 
-export function HeroBanner({ video, onPlay, onMyList }: HeroBannerProps) {
+export function HeroBanner({ video, onPlay: _onPlay, onMyList }: HeroBannerProps) {
   const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -24,10 +21,8 @@ export function HeroBanner({ video, onPlay, onMyList }: HeroBannerProps) {
     if (!video) return;
 
     const handleCanPlay = () => {
-      setIsLoaded(true);
       video.play().catch(() => {
-        // Autoplay was prevented
-        setIsPlaying(false);
+        // Autoplay was prevented by the browser — the play button remains visible.
       });
     };
 

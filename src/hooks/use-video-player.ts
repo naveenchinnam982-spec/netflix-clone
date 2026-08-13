@@ -61,57 +61,6 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement | null
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!videoRef.current) return;
-
-      switch (e.code) {
-        case 'Space':
-          e.preventDefault();
-          togglePlay();
-          break;
-        case 'KeyF':
-          toggleFullscreen();
-          break;
-        case 'KeyM':
-          toggleMute();
-          break;
-        case 'ArrowLeft':
-          skipBackward();
-          break;
-        case 'ArrowRight':
-          skipForward();
-          break;
-        case 'ArrowUp':
-          setVolume(Math.min(state.volume + 0.1, 1));
-          break;
-        case 'ArrowDown':
-          setVolume(Math.max(state.volume - 0.1, 0));
-          break;
-        case 'KeyP':
-          togglePiP();
-          break;
-        case 'Digit0':
-        case 'Digit1':
-        case 'Digit2':
-        case 'Digit3':
-        case 'Digit4':
-        case 'Digit5':
-        case 'Digit6':
-        case 'Digit7':
-        case 'Digit8':
-        case 'Digit9':
-          const percent = parseInt(e.code.replace('Digit', '')) / 10;
-          seek(percent * state.duration);
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [state.duration, state.volume]);
-
   // Video element event listeners
   useEffect(() => {
     const video = videoRef.current;
@@ -265,6 +214,70 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement | null
     setState(s => ({ ...s, quality }));
     // Quality switching is handled by HLS.js
   }, []);
+
+  // Keyboard shortcuts — declared after the control callbacks so their
+  // identities are stable and can be listed as dependencies safely.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!videoRef.current) return;
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'KeyF':
+          toggleFullscreen();
+          break;
+        case 'KeyM':
+          toggleMute();
+          break;
+        case 'ArrowLeft':
+          skipBackward();
+          break;
+        case 'ArrowRight':
+          skipForward();
+          break;
+        case 'ArrowUp':
+          setVolume(Math.min(state.volume + 0.1, 1));
+          break;
+        case 'ArrowDown':
+          setVolume(Math.max(state.volume - 0.1, 0));
+          break;
+        case 'KeyP':
+          togglePiP();
+          break;
+        case 'Digit0':
+        case 'Digit1':
+        case 'Digit2':
+        case 'Digit3':
+        case 'Digit4':
+        case 'Digit5':
+        case 'Digit6':
+        case 'Digit7':
+        case 'Digit8':
+        case 'Digit9':
+          const percent = parseInt(e.code.replace('Digit', '')) / 10;
+          seek(percent * state.duration);
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [
+    state.duration,
+    state.volume,
+    videoRef,
+    seek,
+    setVolume,
+    skipBackward,
+    skipForward,
+    toggleFullscreen,
+    toggleMute,
+    togglePiP,
+    togglePlay,
+  ]);
 
   const controls: PlayerControls = {
     play,

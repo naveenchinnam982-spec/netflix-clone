@@ -21,13 +21,24 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       // A user can create/update their own profile; only admins modify roles or bans.
+      // The key whitelists below must match exactly what src/lib/auth-store.ts
+      // (createUserDocument) writes — see that file before changing them.
       allow create: if isSignedIn() && request.auth.uid == userId &&
-        request.resource.data.keys().hasOnly(['displayName', 'photoURL', 'bio', 'createdAt']);
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.role == 'user' &&
+        request.resource.data.isBanned == false &&
+        request.resource.data.keys().hasOnly([
+          'uid', 'email', 'displayName', 'photoURL', 'role', 'emailVerified',
+          'isBanned', 'subscription', 'createdAt', 'lastLoginAt',
+          'preferences', 'stats'
+        ]);
       allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['role', 'banned', 'banReason', 'storageUsed'])) ||
+          .hasAny(['role', 'banned', 'banReason', 'storageUsed', 'isBanned'])) ||
         (isSignedIn() && request.auth.uid == userId &&
           request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['displayName', 'photoURL', 'bio']));
+            .hasOnly(['displayName', 'photoURL', 'bio', 'lastLoginAt',
+              'preferences', 'stats', 'emailVerified', 'subscription', 'phoneNumber']));
       allow delete: if isAdmin();
     }
 

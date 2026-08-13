@@ -9,7 +9,7 @@ import { useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Play, Plus, ThumbsUp, ChevronDown, Clock } from 'lucide-react';
+import { Play, Plus } from 'lucide-react';
 import { cn, formatDuration, formatViews, formatRelativeDate } from '@/lib/utils';
 import type { VideoCardProps } from '@/types';
 

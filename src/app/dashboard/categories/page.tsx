@@ -33,7 +33,7 @@ export default function CategoriesPage() {
       await repo.updateCategory(editing.id, { name: name.trim(), description, color });
       toast.success('Category updated');
     } else {
-      const created = await repo.createCategory({
+      await repo.createCategory({
         name: name.trim(),
         slug: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
         description,

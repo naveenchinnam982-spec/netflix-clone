@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ThumbsUp, ThumbsDown, Share2, Flag, Clock, ListPlus, Check, Copy, Link2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Share2, Clock, ListPlus, Check, Copy, Link2 } from 'lucide-react';
 import { VideoPlayer } from '@/components/ui/video-player';
 import { CommentSection } from '@/components/ui/comment-section';
 import { useVideoStore } from '@/store/video-store';
@@ -38,7 +38,7 @@ export default function WatchPage() {
   const positionRef = useRef(0);
   const durationRef = useRef(0);
 
-  const { getVideoById, addToHistory, videos, toggleLike, myList } = useVideoStore();
+  const { getVideoById, addToHistory, videos, toggleLike, myList, fetchVideos } = useVideoStore();
   const user = useAuthStore(s => s.user);
 
   const loadComments = useCallback(async () => {
@@ -69,10 +69,12 @@ export default function WatchPage() {
     };
     loadVideo();
     loadComments();
+    // Populate the store-wide catalog so the "More Videos" sidebar renders.
+    if (videos.length === 0) fetchVideos();
     return () => {
       cancelled = true;
     };
-  }, [videoId, getVideoById, addToHistory, loadComments, user]);
+  }, [videoId, getVideoById, addToHistory, loadComments, user, videos.length, fetchVideos]);
 
   // Reflect my-list membership when the store updates.
   useEffect(() => {
@@ -89,15 +91,19 @@ export default function WatchPage() {
 
   // Persist progress to the repository (Firestore/demo) on an interval and on unmount.
   useEffect(() => {
+    // Capture ref objects so the cleanup reads the live values at unmount
+    // without tripping the ref-in-cleanup lint rule.
+    const position = positionRef;
+    const duration = durationRef;
     saveTimer.current = setInterval(() => {
-      if (positionRef.current > 10 && user) {
-        repo.saveWatchProgress(user.uid, videoId, positionRef.current, durationRef.current);
+      if (position.current > 10 && user) {
+        repo.saveWatchProgress(user.uid, videoId, position.current, duration.current);
       }
     }, 10000);
     return () => {
       if (saveTimer.current) clearInterval(saveTimer.current);
-      if (positionRef.current > 10 && user) {
-        repo.saveWatchProgress(user.uid, videoId, positionRef.current, durationRef.current);
+      if (position.current > 10 && user) {
+        repo.saveWatchProgress(user.uid, videoId, position.current, duration.current);
       }
     };
   }, [videoId, user]);
@@ -181,10 +187,16 @@ export default function WatchPage() {
     );
   }
 
-  const related = videos
-    .filter(v => v.id !== video.id && (v.categoryId === video.categoryId || v.tags?.some(t => video.tags?.includes(t))))
-    .concat(videos.filter(v => v.id !== video.id && v.categoryId !== video.categoryId))
-    .slice(0, 10);
+  // Recommendations: same category/tags first, then the rest. Deduplicated so
+  // a video matching both groups never appears twice (fixes duplicate-key UI
+  // warnings) and capped at 10.
+  const others = videos.filter(v => v.id !== video.id);
+  const related = Array.from(new Map(
+    others
+      .filter(v => v.categoryId === video.categoryId || v.tags?.some(t => video.tags?.includes(t)))
+      .concat(others.filter(v => v.categoryId !== video.categoryId))
+      .map(v => [v.id, v])
+  ).values()).slice(0, 10);
 
   return (
     <div className="min-h-screen bg-netflix-black">

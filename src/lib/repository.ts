@@ -70,7 +70,7 @@ function markDemo() {
 function getFirestore() {
   // Dynamic require so importing this module never pulls firebase into the
   // server bundle or crashes in demo mode.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require('@/lib/firebase').db;
 }
 
@@ -110,16 +110,21 @@ class Repository {
     if (resolveBackend() === 'firebase') {
       try {
         const db = getFirestore();
-        const { collection, query: q, where, orderBy, limit: l, getDocs } = await import('firebase/firestore');
-        let ref = collection(db, 'videos');
+        const { collection, query: q, where, getDocs } = await import('firebase/firestore');
+        // Equality filters only — no composite index required, so this works
+        // on a fresh Firebase project with zero console setup. Sorting and
+        // pagination happen in memory. (At large scale, add the composite
+        // indexes for status+createdAt / status+views and move sort/limit
+        // back into the query.)
         const constraints: any[] = [where('status', '==', 'ready')];
         if (categoryId) constraints.push(where('categoryId', '==', categoryId));
-        if (sortBy === 'views') constraints.push(orderBy('views', 'desc'));
-        else constraints.push(orderBy('createdAt', 'desc'));
-        constraints.push(l(limit));
-        const snap = await getDocs(q(ref, ...constraints));
-        const videos = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Video);
-        return { videos, hasMore: snap.docs.length === limit, total: videos.length };
+        const snap = await getDocs(q(collection(db, 'videos'), ...constraints));
+        let videos = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Video);
+        if (sortBy === 'views') videos = [...videos].sort((a, b) => b.views - a.views);
+        else videos = [...videos].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        const start = (page - 1) * limit;
+        const slice = videos.slice(start, start + limit);
+        return { videos: slice, hasMore: start + limit < videos.length, total: videos.length };
       } catch {
         markDemo();
       }
@@ -206,9 +211,12 @@ class Repository {
     if (resolveBackend() === 'firebase') {
       try {
         const db = getFirestore();
-        const { collection, query, where, orderBy, getDocs } = await import('firebase/firestore');
-        const snap = await getDocs(query(collection(db, 'categories'), where('isActive', '==', true), orderBy('order', 'asc')));
-        return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
+        const { collection, query, where, getDocs } = await import('firebase/firestore');
+        // Equality filter only (no composite index needed); sort in memory.
+        const snap = await getDocs(query(collection(db, 'categories'), where('isActive', '==', true)));
+        return snap.docs
+          .map(d => ({ id: d.id, ...d.data() }) as Category)
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       } catch {
         markDemo();
       }
@@ -579,8 +587,10 @@ class Repository {
       try {
         const db = getFirestore();
         const { collection, addDoc } = await import('firebase/firestore');
-        const { id, ...rest } = video;
-        const ref = await addDoc(collection(db, 'videos'), rest);
+        // Strip the local id before persisting — Firestore generates its own.
+        const doc = { ...video } as { id?: string };
+        delete doc.id;
+        const ref = await addDoc(collection(db, 'videos'), doc);
         return { ...video, id: ref.id };
       } catch {
         markDemo();
@@ -747,8 +757,10 @@ class Repository {
       try {
         const db = getFirestore();
         const { collection, addDoc } = await import('firebase/firestore');
-        const { id, ...rest } = stream;
-        const ref = await addDoc(collection(db, 'liveStreams'), rest);
+        // Strip the local id before persisting — Firestore generates its own.
+        const doc = { ...stream } as { id?: string };
+        delete doc.id;
+        const ref = await addDoc(collection(db, 'liveStreams'), doc);
         return { ...stream, id: ref.id };
       } catch {
         markDemo();
